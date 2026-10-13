@@ -79,7 +79,7 @@ final class VideoPreparation {
             var h264 = false
             if let track = tracks.first {
                 let descriptions = try await track.load(.formatDescriptions)
-                h264 = descriptions.first.map { CMVideoFormatDescriptionGetCodecType($0) == kCMVideoCodecType_H264 } ?? false
+                h264 = descriptions.first.map { CMFormatDescriptionGetMediaSubType($0) == kCMVideoCodecType_H264 } ?? false
             }
             let naturalSize = try await tracks.first?.load(.naturalSize)
             let transform = try await tracks.first?.load(.preferredTransform)
@@ -100,3 +100,4 @@ final class VideoPreparation {
         }
     }
 }
+
