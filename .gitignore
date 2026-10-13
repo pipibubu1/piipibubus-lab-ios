@@ -1,0 +1,4 @@
+/.ios-build/
+/ios-output/
+/ios/*.xcodeproj/
+.DS_Store

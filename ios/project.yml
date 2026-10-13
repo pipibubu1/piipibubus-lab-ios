@@ -1,0 +1,31 @@
+name: PIIPIBUBUSLAB
+options:
+  minimumXcodeGenVersion: 2.42.0
+  deploymentTarget:
+    iOS: '18.4'
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    SWIFT_STRICT_CONCURRENCY: targeted
+    MARKETING_VERSION: '1.0'
+    CURRENT_PROJECT_VERSION: '1'
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    GENERATE_INFOPLIST_FILE: NO
+targets:
+  PIIPIBUBUSLAB:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+        excludes:
+          - Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.piipibubus.lab.ios
+        INFOPLIST_FILE: App/Info.plist
+        TARGETED_DEVICE_FAMILY: '1,2'
+        SUPPORTS_MACCATALYST: NO
+        ENABLE_BITCODE: NO
+    scheme:
+      gatherCoverageData: false

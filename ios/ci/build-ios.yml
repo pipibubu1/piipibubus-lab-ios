@@ -1,0 +1,23 @@
+name: Build iOS app
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unsigned-ipa:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install project generator
+        run: brew install xcodegen
+      - name: Build unsigned iPhone app
+        run: bash ios/scripts/build-unsigned.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: PIIPIBUBUS-LAB-unsigned-IPA
+          path: ios-output/PIIPIBUBUS-LAB-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
