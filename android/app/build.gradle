@@ -1,0 +1,15 @@
+plugins { id 'com.android.application' }
+android {
+ namespace 'com.edijs.training'
+ compileSdk 35
+ buildToolsVersion '35.0.0'
+ defaultConfig { applicationId 'com.piipibubus.lab'; minSdk 23; targetSdk 35; versionCode 4; versionName '2.2-premium' }
+ buildTypes { release { signingConfig signingConfigs.debug; minifyEnabled false; debuggable false } }
+}
+
+dependencies {
+ implementation "androidx.media3:media3-transformer:1.9.4"
+ implementation "androidx.media3:media3-effect:1.9.4"
+ implementation "androidx.media3:media3-common:1.9.4"
+ implementation "androidx.core:core:1.13.1"
+}
