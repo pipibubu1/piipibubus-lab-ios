@@ -18,6 +18,7 @@ final class MainViewController: UIViewController, WKNavigationDelegate, WKUIDele
     private var fileTask: Task<Void, Never>?
     private var fileCompletion: (@MainActor @Sendable ([URL]?) -> Void)?
     private let videos = VideoPreparation()
+    private var lastFeedback: TimeInterval = 0
     private let origin = NativeLoginClient.origin
 
     override func viewDidLoad() {
@@ -25,6 +26,8 @@ final class MainViewController: UIViewController, WKNavigationDelegate, WKUIDele
         view.backgroundColor = UIColor(red: 0.078, green: 0.09, blue: 0.075, alpha: 1)
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .default()
+        config.userContentController.add(WeakFeedbackHandler(owner: self), name: "labFeedback")
+        config.userContentController.addUserScript(WKUserScript(source: "window.LabNativeCapabilities={haptics:true,version:2};", injectionTime: .atDocumentStart, forMainFrameOnly: true))
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = .all
         web = WKWebView(frame: .zero, configuration: config)
@@ -44,14 +47,14 @@ final class MainViewController: UIViewController, WKNavigationDelegate, WKUIDele
         NSLayoutConstraint.activate([
             stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             stack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+            stack.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor)
         ])
         try? VideoPreparation.prepareFolder()
         web.evaluateJavaScript("navigator.userAgent") { [weak self] value, _ in
             guard let self = self else { return }
             let base = value as? String ?? "Mozilla/5.0 (iPhone; CPU iPhone OS 18_4 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148"
-            self.userAgent = base + " PIIPIBUBUSIOS/1"
+            self.userAgent = base + " PIIPIBUBUSIOS/2"
             self.web.customUserAgent = self.userAgent
             self.web.load(URLRequest(url: self.origin.appendingPathComponent("account")))
         }
@@ -59,6 +62,15 @@ final class MainViewController: UIViewController, WKNavigationDelegate, WKUIDele
     private func ownSite(_ url: URL?) -> Bool {
         guard let url = url else { return false }
         return url.scheme == "https" && url.host == origin.host && (url.port == nil || url.port == 443)
+    }
+    fileprivate func feedback(_ message: WKScriptMessage) {
+        guard trusted(message.frameInfo), ownSite(web.url), UIApplication.shared.applicationState == .active,
+              view.window != nil, let payload = message.body as? [String: Any], payload.count == 1,
+              let type = payload["type"] as? String, ["tap", "success"].contains(type) else { return }
+        let instant = ProcessInfo.processInfo.systemUptime
+        guard instant - lastFeedback >= 0.15 else { return }; lastFeedback = instant
+        if type == "tap" { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
+        else { UINotificationFeedbackGenerator().notificationOccurred(.success) }
     }
     private func trusted(_ frame: WKFrameInfo) -> Bool { frame.isMainFrame && ownSite(frame.request.url) }
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -200,5 +212,15 @@ final class MainViewController: UIViewController, WKNavigationDelegate, WKUIDele
         prompt.addAction(UIAlertAction(title: "Turpināt / Continue", style: .default) { _ in completionHandler(true) })
         prompt.addAction(UIAlertAction(title: "Atcelt / Cancel", style: .cancel) { _ in completionHandler(false) })
         present(prompt, animated: true)
+    }
+}
+
+// Weak ownership avoids a WKUserContentController / controller retain cycle.
+@MainActor
+private final class WeakFeedbackHandler: NSObject, WKScriptMessageHandler {
+    weak var owner: MainViewController?
+    init(owner: MainViewController) { self.owner = owner }
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        owner?.feedback(message)
     }
 }
